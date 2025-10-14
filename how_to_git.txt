@@ -1,0 +1,6 @@
+Add + Commit to github
+
+git add .      ( adds every change you made )
+git commit -m "MESSAGE"     ( commits it to github )
+
+git push    ( pushes to github )
