@@ -8,39 +8,46 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 class subdomainFinder:
-    def __init__(self):
-        pass
-
-
-    def crtsh_subdomains(self, domain: str, max_retries: int=10):
+    def __init__(self, retries=10, timeout=15):
+        self.timeout = (timeout, timeout)
 
         session = requests.Session()
+        session.headers.update({"User-Agent": "SubFinder/Tasty1.0"})
+        session.mount("http://", HTTPAdapter(max_retries=Retry(total=retries, backoff_factor=1.2, status_forcelist=(429,500,502,503,504), allowed_methods={"GET"})))
+        session.mount("https://", HTTPAdapter(max_retries=Retry(total=retries, backoff_factor=1.2, status_forcelist=(429,500,502,503,504), allowed_methods={"GET"})))
 
-        retries = Retry(
-            total = max_retries,
-            backoff_factor=1,
-            status_forcelist=(429, 500, 502, 503, 504),
-            allowed_methods=("GET",),
-        )
-        adapter = HTTPAdapter(max_retries=retries)
-        session.mount("https://", adapter)
-        session.mount("http://", adapter)
+        self.session = session
 
-        url = "https://crt.sh/"
-        params = {"q": f"%.{domain}", "output": "json"}
-        resp = session.get(url, params=params, timeout=15)
-        resp.raise_for_status() 
+    def _get(self, url):
+        r = self.session.get(url, timeout=self.timeout); r.raise_for_status()
+        try: return r.json()
+        except: return [json.loads(x) for x in r.text.splitlines() if x.strip().startswith("{")]
+
+
+
+
+    def crtsh_subdomains(self, domain: str):
+
+        data = self._get(url=f"https://crt.sh/?q=%.{domain}&output=json")
+
+        if not isinstance(data, list):
+            return []
+
+        subs = []
+        for row in data:
+            for n in row.get("name_value", "").splitlines():
+                n = n.strip().lower()
+                if n.endswith(domain):
+                    subs.append(n.lstrip("*."))
+        return sorted(set(subs))
     
-        data = resp.json()
-        
 
-        subs = set(re.sub(r'^\*\.', '', n.strip().lower())
-                for d in data for n in d.get('name_value', '').split('\n')
-                if n.endswith(domain))
-        return sorted(subs)
-    
+
     def circl_subdomains(self, domain: str):
         x = 0
+
+        url = f"https://www.circl.lu/pdns/query/{domain}"
+
 
         pass
 
@@ -62,10 +69,6 @@ subdomain_finder = subdomainFinder()
 if __name__=="__main__":
     domain = "bananagun.io"
 
-    crtsh_subdomains = subdomain_finder.crtsh_subdomains(domain=domain)
-
-    print(crtsh_subdomains)
-    print(len(crtsh_subdomains))
 
     all_subs = subdomain_finder.get_subdomains(domain=domain)
 
