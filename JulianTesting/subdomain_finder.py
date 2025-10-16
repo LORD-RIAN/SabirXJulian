@@ -4,38 +4,45 @@ import requests
 import json
 import re
 import time
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 class subdomainFinder:
     def __init__(self):
         pass
 
 
-    def crtsh_subdomains(self, domain: str):
-        x = 0
-        while True:
-            x += 1
-            try:
-                r = requests.get(f"https://crt.sh/?q=%.{domain}&output=json", timeout=15)
-                print(r.status_code)
-                if r.status_code == 200:
-                    break
+    def crtsh_subdomains(self, domain: str, max_retries: int=10):
 
-            except Exception as e:
-                print("Shit failed! CRTSH\n", e)
-            
-            time.sleep(2)
+        session = requests.Session()
 
-            if x > 15:
-                print("QUITTING CUZZA CRTSH!!")
-                quit()
+        retries = Retry(
+            total = max_retries,
+            backoff_factor=1,
+            status_forcelist=(429, 500, 502, 503, 504),
+            allowed_methods=("GET",),
+        )
+        adapter = HTTPAdapter(max_retries=retries)
+        session.mount("https://", adapter)
+        session.mount("http://", adapter)
 
+        url = "https://crt.sh/"
+        params = {"q": f"%.{domain}", "output": "json"}
+        resp = session.get(url, params=params, timeout=15)
+        resp.raise_for_status() 
+    
+        data = resp.json()
         
 
-        data = r.json() if r.text.strip().startswith('[') else [json.loads(x) for x in r.text.splitlines()]
         subs = set(re.sub(r'^\*\.', '', n.strip().lower())
                 for d in data for n in d.get('name_value', '').split('\n')
                 if n.endswith(domain))
         return sorted(subs)
+    
+    def circl_subdomains(self, domain: str):
+        x = 0
+
+        pass
 
 
 
