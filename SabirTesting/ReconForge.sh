@@ -4,6 +4,9 @@ set -euo pipefail
 # Usage: ./ReconForge.sh example.com
 # Requirements: subfinder, dig, python3, nmap
 #
+# Descriptionn:
+# ReconForge — finds subdomains, drops CDN junk, and runs Nmap on the real hosts.
+#
 # Workflow:
 #  1) creates directory ./<target> and places everything inside
 #  2) subfinder -> ./<target>/<target>_subdomains.txt
@@ -22,7 +25,6 @@ set -euo pipefail
 #   <target>_ip.txt
 #   <target>_nmap.nmap/.gnmap/.xml
 #
-# Note: Only scan hosts you are authorized to test.
 
 if [[ $# -ne 1 ]]; then
   echo "Usage: $0 <target-domain>" >&2
