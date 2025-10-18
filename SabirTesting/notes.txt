@@ -1,2 +1,3 @@
 #Finding subdomain
-subfinder -a 
+subfinder -a google -all
+assestfinder
